@@ -166,8 +166,8 @@ class RNNLM(object):
         self.logits_ = None
 
         # Should be the same shape as inputs_w_
-        #self.target_y_ = tf.placeholder(tf.int32, [None, None], name="y")
-        self.target_y_ = tf.placeholder(tf.int32, [None], name="y")
+        self.target_y_ = tf.placeholder(tf.int32, [None, None], name="y")
+        #self.target_y_ = tf.placeholder(tf.int32, [None], name="y")
         
         # Replace this with an actual loss function
         self.loss_ = None
@@ -222,15 +222,18 @@ class RNNLM(object):
 
         # Construct RNN/LSTM cell and recurrent layer.
         self.cell_ = MakeFancyRNNCell(self.H, self.dropout_keep_prob_, self.num_layers)
+        
 
         self.initial_h_ = self.cell_.zero_state(self.batch_size_ ,  dtype=tf.float32)
 
         # 'outputs' is a tensor of shape [batch_size, max_time, cell_state_size]
         # 'state' is a tensor of shape [batch_size, cell_state_size]
         self.output_, self.final_h_ = tf.nn.dynamic_rnn(self.cell_, self.x_,
-                                   sequence_length=self.ns_, initial_state=self.initial_h_,
-                                  dtype=tf.float32)
-
+                                 initial_state=self.initial_h_, sequence_length=self.ns_,
+                                 dtype=tf.float32)
+        
+        
+       
 
 
 
@@ -310,8 +313,11 @@ class RNNLM(object):
         #
 
 
-             self.loss_ = tf.losses.mean_squared_error(tf.expand_dims(self.target_y_, 1), self.predictions_)
-             tf.summary.scalar('loss', self.loss_)
+            self.target_y_reshape = tf.expand_dims(self.target_y_, 1)
+            print('reshaped y',self.target_y_reshape.get_shape())
+            #self.loss_ = tf.losses.mean_squared_error(self.target_y_reshape, self.predictions_)
+            self.loss_ = tf.losses.mean_squared_error(self.target_y_, self.predictions_)
+            tf.summary.scalar('loss', self.loss_)
 
         with tf.name_scope("Training"):
 
@@ -325,6 +331,7 @@ class RNNLM(object):
             # self.train_step_ = optimizer_.minimize(self.train_loss_)
 
         with tf.name_scope('accuracy'):
+            #correct_pred = tf.equal(tf.cast(tf.round(self.predictions_), tf.int32), self.target_y_reshape)
             correct_pred = tf.equal(tf.cast(tf.round(self.predictions_), tf.int32), self.target_y_)
             self.accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
 
